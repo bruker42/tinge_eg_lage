@@ -75,4 +75,5 @@ def main():
     bildematrise = make_grey(bildematrise)
     update(img, bildematrise)
     win.update
-main()
+    print('Kanskje')
+#main()
