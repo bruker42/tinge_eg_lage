@@ -1,3 +1,4 @@
+# coding=ISO-8859-1
 """Oblig 7
 """
 
@@ -8,13 +9,13 @@ import time
 class Filter:
         
     """
-    Skal utføre operasjoner på bildet
+    Skal utfore operasjoner paa bildet
     """
-    def __init__(self, bilde, bildematrise, bredde, høyde, vindu):
+    def __init__(self, bilde, bildematrise, bredde, hoyde, vindu):
         self.bilde = bilde
         self.bildematrise = bildematrise
         self.bredde = bredde
-        self.høyde = høyde
+        self.hoyde = hoyde
         self.vindu = vindu
         self.historie = []
         self.save_state()
@@ -22,7 +23,7 @@ class Filter:
     def tidtaking(self, funksjon):
         """
         starttid = time.now()
-        Å kjøre funksjon som funksjon,
+        Å kjore funksjon som funksjon,
         deltatid = time.now() - starttid
         save_state
         """
@@ -51,7 +52,7 @@ class Filter:
                         pixels[i] = 255
                     elif val < 0:
                         pixels[i] = 0
-                self.bildematrise[y][x] = pixels[0], pixels[1], pixels[2]
+                self.bildematrise[y][x] = (pixels[0], pixels[1], pixels[2])
         
     def increase_brigthness(self):
         for y, rad in enumerate(self.bildematrise):
@@ -72,12 +73,12 @@ class Filter:
                 self.bildematrise[y][x] = r, g, b
     
     def flip(self):
-        self.bildematrise=reversed(self.bildematrise)
+        self.bildematrise = list(reversed(self.bildematrise))
 
         
     def mirror(self):
         for y, rad in enumerate(self.bildematrise):
-            self.bildematrise[y] = reversed(rad)
+            self.bildematrise[y] = list(reversed(rad))
 
     def blur(self):
         for y, rad in enumerate(self.bildematrise):
@@ -85,7 +86,7 @@ class Filter:
                 teller, avg_r, avg_g, avg_b = 0, 0, 0, 0             
                 for i in range(3):
                     for j in range(3):
-                        if (y-i<0 or x-j<0) or (y-i>self.høyde or x-j>self.bredde):
+                        if (y-i<0 or x-j<0) or (y-i>self.hoyde or x-j>self.bredde):
                             teller += 1
                             avg_r += pixel[0]
                             avg_g += pixel[1]
@@ -168,9 +169,9 @@ class Knapp:
         
 def bilde_til_rgb_matrise(img):
     bredde = img.getWidth()
-    høyde = img.getHeight()
+    hoyde = img.getHeight()
     bildematrise = []
-    for y in range(høyde):
+    for y in range(hoyde):
             bildematrise.append([])
             for x in range(bredde):
                 bildematrise[y].append(img.getPixel(x, y))
@@ -179,19 +180,19 @@ def bilde_til_rgb_matrise(img):
 def main(bildevalg='bilde.gif'):
     img = Image(Point(0, 0), bildevalg) 
     bredde = img.getWidth()
-    høyde = img.getHeight()
-    img.anchor = Point(bredde/2, høyde/2)
-    vindu = GraphWin('Bilde', bredde, høyde)
+    hoyde = img.getHeight()
+    img.anchor = Point(bredde/2, hoyde/2)
+    vindu = GraphWin('Bilde', bredde, hoyde)
     img.draw(vindu)
     
     bildematrise = bilde_til_rgb_matrise(img)
     
-    test = Filter(img, bildematrise, bredde, høyde, vindu)
+    test = Filter(img, bildematrise, bredde, hoyde, vindu)
 
-    test.mirror()
+    test.blur()
     test.update()
 
-#main()
+main()
 
     
     
