@@ -52,7 +52,7 @@ class Filter:
                     elif val < 0:
                         pixels[i] = 0
                 self.bildematrise[y][x] = pixels[0], pixels[1], pixels[2]
-        
+
     def increase_brigthness(self):
         for y, rad in enumerate(self.bildematrise):
             for x, pixel in enumerate(rad):
@@ -72,12 +72,12 @@ class Filter:
                 self.bildematrise[y][x] = r, g, b
     
     def flip(self):
-        self.bildematrise=reversed(self.bildematrise)
+        self.bildematrise = list(reversed(self.bildematrise))
 
         
     def mirror(self):
         for y, rad in enumerate(self.bildematrise):
-            self.bildematrise[y] = reversed(rad)
+            self.bildematrise[y] = list(reversed(rad))
 
     def blur(self):
         for y, rad in enumerate(self.bildematrise):
