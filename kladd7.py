@@ -5,7 +5,7 @@ from graphics import *
 import time
 
 
-class Filter:    
+class Filter:   
     """
     Skal utføre operasjoner på bildet
     """
@@ -21,22 +21,32 @@ class Filter:
     def tidtakning(self, funksjon, *args):
         start = time.time()
         funksjon(*args)
+        self.save_state()
+        self.update()
         deltatid = time.time() - start
         print(deltatid)
 
     def save_state(self):
-        self.historie.append(list(self.bildematrise))
+        temp = []
+        for rad in self.bildematrise:
+            temp.append(list(rad))
+        self.historie.append(list(temp))
 
     def load_state(self, i=0):
-        self.bildematrise = self.historie[i]
+        temp = self.historie[i]
+        self.bildematrise = []
+        for rad in temp:
+            self.bildematrise.append(list(rad))
 
     def save_file(self):
-        self.bilde.save('bilde.bmp')
+        self.bilde.save('nytt_bilde.gif')
 
     def undo(self):
+        print(len(self.historie))
         if len(self.historie) > 1:
             self.historie.pop()
-            self.bildematrise = self.historie[-1]
+            self.load_state(-1)
+            self.update()
 
     def fix_pixels(self):
         for y, rad in enumerate(self.bildematrise):
@@ -49,7 +59,7 @@ class Filter:
                         pixels[i] = 0
                 self.bildematrise[y][x] = pixels[0], pixels[1], pixels[2]
 
-    def increase_brigthness(self):
+    def increase_brightness(self):
         for y, rad in enumerate(self.bildematrise):
             for x, pixel in enumerate(rad):
                 r, g, b = pixel
@@ -69,7 +79,7 @@ class Filter:
 
     def flip(self):
         self.bildematrise = list(reversed(self.bildematrise))
-   
+
     def mirror(self):
         for y, rad in enumerate(self.bildematrise):
             self.bildematrise[y] = list(reversed(rad))
@@ -78,7 +88,7 @@ class Filter:
         for _ in range(2):
             for y, rad in enumerate(self.bildematrise):
                 for x, pixel in enumerate(rad):
-                    teller, avg_r, avg_g, avg_b = 0, 0, 0, 0             
+                    teller, avg_r, avg_g, avg_b = 0, 0, 0, 0            
                     for i in range(3):
                         for j in range(3):
                             if (y-1+i > 0 and x-1+j > 0) and (y-1+i < self.høyde and x-1+j < self.bredde):
@@ -128,11 +138,11 @@ class Filter:
                         r, g = 0, 0
                     self.bildematrise[y_start + y][x_start + x] = r, g, b
 
-    def change_contrast(self, traktor=1.6):
+    def change_contrast(self, faktor=1.6):
         for y, rad in enumerate(self.bildematrise):
             for x, pixel in enumerate(rad):
                 r, g, b = pixel
-                self.bildematrise[y][x] = r * traktor, g * traktor, b * traktor
+                self.bildematrise[y][x] = r * faktor, g * faktor, b * faktor
 
     def grayscale(self):
         for y, rad in enumerate(self.bildematrise):
@@ -192,30 +202,31 @@ class Filter:
     def enkod(self, beskjed):
         tekst = Stenografi.enkod(beskjed)
         lengde = len(tekst)
-        antall_rader = lengde // self.bredde
-        if lengde % self.bredde > 0:
-            antall_rader += 1
-        teller = 0
-        for y in range(antall_rader):
-            for x, pixel in enumerate(self.bildematrise[y]):
-                r, g, b = pixel
-                ny_r = r // 1
-                r = int(ny_r)
-                if tekst[teller] == '0':
-                    r = 255
-                elif tekst[teller] == '1':
-                    r = 0
-                self.bildematrise[y][x] = r, g, b
-                teller += 1
+        y = 0
+        x = 0
+        for c in tekst:
+            r, g, b = self.bildematrise[y][x]
+            if c == '0' and b % 2 == 1:
+                if b == 255:
+                    b -= 1
+                else:
+                    b += 1
+            elif c == '1' and b % 2 == 0:
+                b += 1
+            self.bildematrise[y][x] = r, g, b
+            x += 1
+            if x >= self.bredde:
+                y += 1
+                x = 0
 
     def dekod(self):
         beskjed = ''
         for y, rad in enumerate(self.bildematrise):
             for x, pixel in enumerate(rad):
                 r, g, b = pixel
-                if r == 255:
+                if b % 2 == 0:
                     beskjed += '0'
-                elif r == 0:
+                elif b % 2 == 1:
                     beskjed += '1'
         dekodet = Stenografi.dekod(beskjed)
         print(dekodet)
@@ -262,50 +273,68 @@ class Kontroll:
     """
     Skal fordele funksjone til knapper i kontrollpanelet
     """
-    def __init__(self):
+    def __init__(self, vindu):
         self.vindu = vindu
-        self.knapper = [] #Brukes til å opprettet, tegne og styre knapper
-        self.vindu.setCoords(0,0, 100, 400)
-        self.vindu.setMouseHandler(self.påklikk) #Finner hvor musen har trykket uten kontroll-løkkke
-        self.entry = Entry(Point(50,150),10)
-        self.entry.draw(vindu)
+        self.knapper = [] 
+        self.vindu.setCoords(0, 0, 100, 300)
+        self.vindu.setMouseHandler(self.påklikk)
+        self.y = 5
+        self.x = 5
 
     def tegn(self):
         for knapp in self.knapper:
             knapp.tegn(self.vindu)
 
+    def lag_knapp(self, tekst, funksjon,*args):
+        self.knapper.append(Knapp(self.x , self.y, 40, 20, tekst, funksjon, *args))
+        self.x += 50
+        if self.x > 100:
+            self.x = 5
+            self.y += 25
+
+    def lag_entry(self, x, y):
+        self.knapper[-1].entry = Entry(Point(x, y), 40) 
+
+
+
     def påklikk(self, punkt):
-        #Finner hvilken knapp som har blitt trykket of gir den beskjed
         punkt = self.vindu.trans.world(punkt.getX(), punkt.getY())
         for i in self.knapper:
-            i.påklikk(punkt[0], punkt[1], self.vindu, self.entry.getText())
+            i.påklikk(punkt[0], punkt[1], self.vindu)
 
 
 class Knapp:
     """
     Skal lager knapper
     """
-    def __init__(self):
+    def __init__(self, x, y, bredde, høyde, tekst, klikk, *args):
         self.x = x
         self.y = y
         self.bredde = bredde
         self.høyde = høyde
         self.tekst = tekst 
-        self._klikk = klikk #Her tildeles funksjon fra Brett-objektet
+        self._klikk = klikk 
+        self.args = args
+        self.entry = None
 
     def tegn(self, vindu):
-        #Tegner knappen i kontroll-panelet
         self.boks = Rectangle(Point(self.x,self.y),Point(self.x+self.bredde,self.y+self.høyde))
         self.boks.setFill('White')
         knappetekst = Text(self.boks.getCenter(),self.tekst)
         self.boks.draw(vindu)
         knappetekst.draw(vindu)
+        if self.entry != None:
+            self.entry.draw(vindu)
 
-    def påklikk(self, x, y, vindu, entryverdi):
-        #Sjekker om knappen har blitt trykket
+    def påklikk(self, x, y, vindu):
         if (self.x< x < (self.x+self.bredde)) and (self.y < y < (self.y + self.høyde)):
-            self._klikk(entryverdi)
-        #end if
+            if self.entry != None:
+                temp = self.args + (self.entry.getText(),)
+                self._klikk(*temp)
+            else:
+                self._klikk(*self.args)
+
+
 
 def bilde_til_rgb_matrise(img):
     bredde = img.getWidth()
@@ -328,11 +357,26 @@ def main(bildevalg='bilde.gif'):
     bildematrise = bilde_til_rgb_matrise(img)
     
     test = Filter(img, bildematrise, bredde, høyde, vindu)
-
-    test.enkod('Hei')
-    test.dekod()
-
-main()
-
-    
-    
+     
+    kontrollpanel = GraphWin('Kontrollpanel', 400, 400)
+    kontroller = Kontroll(kontrollpanel)
+    kontroller.lag_knapp('Avslutt', exit)
+    kontroller.lag_knapp('Start om', test.tidtakning, test.complete_undo)
+    kontroller.lag_knapp('Flip', test.tidtakning, test.flip)
+    kontroller.lag_knapp('Speil', test.tidtakning, test.mirror)
+    kontroller.lag_knapp('Blur', test.tidtakning, test.blur)
+    kontroller.lag_knapp('Vreng farger', test.tidtakning, test.distort_colour)
+    kontroller.lag_knapp('Øk lysstyrke', test.tidtakning, test.increase_brightness)
+    kontroller.lag_knapp('Mink lysstyrke', test.tidtakning, test.decrease_brightness)
+    kontroller.lag_knapp('Gjør grå', test.tidtakning, test.grayscale)
+    kontroller.lag_knapp('Sepia', test.tidtakning, test.sepia)
+    kontroller.lag_knapp('Endre kontrast', test.tidtakning, test.change_contrast)
+    kontroller.lag_knapp('Pixeler', test.tidtakning, test.pixelate)
+    kontroller.lag_knapp('Pop art', test.tidtakning, test.pop_art)
+    kontroller.lag_knapp('Kun rød', test.tidtakning, test.keep_colour)
+    kontroller.lag_knapp('Lagre', test.tidtakning, test.save_file)
+    kontroller.lag_knapp('Angre', test.undo)
+    kontroller.lag_knapp('Dekod', test.tidtakning, test.dekod)
+    kontroller.lag_knapp('Enkod', test.tidtakning, test.enkod)
+    kontroller.lag_entry(50, 270)
+    kontroller.tegn()
